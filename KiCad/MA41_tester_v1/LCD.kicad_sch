@@ -7,4 +7,21 @@
   (lib_symbols
   )
 
+
+  (hierarchical_label "SCL" (shape bidirectional) (at 44.45 73.66 0)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid 132bed06-77a7-48a5-b7e9-d47282ef1389)
+  )
+  (hierarchical_label "SDA" (shape bidirectional) (at 44.45 69.85 0)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid 4a6a2b54-a7c2-427d-bba7-19c305bc24b8)
+  )
+  (hierarchical_label "GND" (shape input) (at 44.45 81.28 0)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid 5a5afb14-35ca-4203-a64d-08ef71370bf1)
+  )
+  (hierarchical_label "VCC" (shape input) (at 44.45 77.47 0)
+    (effects (font (size 1.27 1.27)) (justify left))
+    (uuid e55a6171-d718-49ee-8ada-73e5479388c2)
+  )
 )

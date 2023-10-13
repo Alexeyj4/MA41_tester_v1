@@ -47,10 +47,7 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if(Serial1.available()){
-    Serial.write(Serial1.read());
-  }
-  if(Serial.available()){
-    Serial1.write(Serial.read());
-  }
+
+  Serial.println(int(analogRead(i_meas_pin)));
+
 }

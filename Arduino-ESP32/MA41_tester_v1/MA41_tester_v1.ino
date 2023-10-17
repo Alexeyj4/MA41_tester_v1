@@ -1,10 +1,14 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-//#include <FontsRus/TimesNRCyr7.h>//high. not long
 #include <FontsRus/CourierCyr8.h>//long. not high
-//#include <FontsRus/FreeMono8.h>//long. not high
-//#include <FontsRus/FreeSans8.h>//high. not long
-//#include <FontsRus/FreeSerif8.h>//high. not long
+
+#define uS_TO_S_FACTOR 1000000  /* коэффициент пересчета //debug
+                                   микросекунд в секунды */
+#define TIME_TO_SLEEP  5        /* время, в течение которого
+                                   будет спать ESP32 (в секундах) */
+
+RTC_DATA_ATTR int bootCount = 0;
+
 
 /*********
   Руи Сантос
@@ -16,13 +20,11 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-//#include <OneWire.h>
-//#include <DallasTemperature.h>
 
 char message[127]; //debug
 
 const int sw_pin=18;
-const int btn_pin=19;
+const gpio_num_t btn_pin=GPIO_NUM_19;
 const int uart1_rx_pin=32;
 const int uart1_tx_pin=33;
 const int i_meas_pin=36;
@@ -95,6 +97,18 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 };
 
 
+void print_wakeup_reason(){ //debug
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch(wakeup_reason)
+  {
+    case ESP_SLEEP_WAKEUP_GPIO: Serial.println("Wakeup caused by GPIO"); break;
+    default : Serial.println("Other cause of wakeup"); break;   
+  }
+}
+
 
 
 void setup() {
@@ -107,6 +121,10 @@ void setup() {
   Serial.begin(115200, SERIAL_8N1);
   Serial1.begin(115200, SERIAL_8N1, uart1_rx_pin, uart1_tx_pin);//* UART1  -> Serial1 //RX Pin //TX Pin //Внешний
   Serial2.begin(115200, SERIAL_8N1); //Внутренний
+
+  print_wakeup_reason();//debug
+  //esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
     
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.setFont(&CourierCyr8pt8b);
@@ -150,9 +168,8 @@ void setup() {
   pServer->getAdvertising()->start();
   Serial.println("Waiting to connect...");
              //  "Ждем подключения..."
-  
-
 }
+
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -187,5 +204,14 @@ void loop() {
        
   }
   delay(1000);
+  Serial.println("Going to sleep now");// "Переход в режим сна"
+  delay(1000);
+  gpio_wakeup_enable(GPIO_NUM_19,GPIO_INTR_LOW_LEVEL);
+  esp_sleep_enable_gpio_wakeup();
+  esp_light_sleep_start();
+  Serial.println("This will never be printed");
+  print_wakeup_reason();//debug
+  delay(2000);
+  
 
 }

@@ -124,7 +124,7 @@ void setup() {
 
   print_wakeup_reason();//debug
   //esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
+  //Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
     
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.setFont(&CourierCyr8pt8b);

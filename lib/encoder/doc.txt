@@ -1,0 +1,288 @@
+ESP32Encoder Class Reference
+#include <ESP32Encoder.h>
+
+Collaboration graph
+[legend]
+Public Member Functions
+ 	ESP32Encoder ()
+ 
+ 	~ESP32Encoder ()
+ 
+void 	attachHalfQuad (int aPintNumber, int bPinNumber)
+ 
+void 	attachFullQuad (int aPintNumber, int bPinNumber)
+ 
+void 	attachSingleEdge (int aPintNumber, int bPinNumber)
+ 
+int64_t 	getCount ()
+ 
+int64_t 	clearCount ()
+ 
+int64_t 	pauseCount ()
+ 
+int64_t 	resumeCount ()
+ 
+boolean 	isAttached ()
+ 
+void 	setCount (int64_t value)
+ 
+void 	setFilter (uint16_t value)
+ 
+Data Fields
+gpio_num_t 	aPinNumber
+ 
+gpio_num_t 	bPinNumber
+ 
+pcnt_unit_t 	unit
+ 
+bool 	fullQuad =false
+ 
+int 	countsMode = 2
+ 
+volatile int64_t 	count =0
+ 
+pcnt_config_t 	r_enc_config
+ 
+Static Public Attributes
+static ESP32Encoder * 	encoders [MAX_ESP32_ENCODERS]
+ 
+static enum puType 	useInternalWeakPullResistors
+ 
+Private Member Functions
+void 	attach (int aPintNumber, int bPinNumber, enum encType et)
+ 
+int64_t 	getCountRaw ()
+ 
+Private Attributes
+boolean 	attached =false
+ 
+bool 	direction
+ 
+bool 	working
+ 
+Static Private Attributes
+static pcnt_isr_handle_t 	user_isr_handle = NULL
+ 
+static bool 	attachedInterrupt =false
+ 
+Detailed Description
+Definition at line 19 of file ESP32Encoder.h.
+
+Constructor & Destructor Documentation
+? ESP32Encoder()
+ESP32Encoder::ESP32Encoder	(		)	
+Definition at line 21 of file ESP32Encoder.cpp.
+
+References aPinNumber, attached, bPinNumber, direction, unit, and working.
+
+? ~ESP32Encoder()
+ESP32Encoder::~ESP32Encoder	(		)	
+Definition at line 30 of file ESP32Encoder.cpp.
+
+Member Function Documentation
+? attach()
+void ESP32Encoder::attach	(	int 	aPintNumber,
+int 	bPinNumber,
+enum encType 	et 
+)		
+private
+Definition at line 63 of file ESP32Encoder.cpp.
+
+References _INT16_MAX, _INT16_MIN, aPinNumber, attached, attachedInterrupt, bPinNumber, DOWN, encoders, full, fullQuad, MAX_ESP32_ENCODERS, pcnt_example_intr_handler(), r_enc_config, setFilter(), single, unit, UP, useInternalWeakPullResistors, and user_isr_handle.
+
+Referenced by attachFullQuad(), attachHalfQuad(), and attachSingleEdge().
+
+
+? attachFullQuad()
+void ESP32Encoder::attachFullQuad	(	int 	aPintNumber,
+int 	bPinNumber 
+)		
+Definition at line 185 of file ESP32Encoder.cpp.
+
+References attach(), and full.
+
+
+? attachHalfQuad()
+void ESP32Encoder::attachHalfQuad	(	int 	aPintNumber,
+int 	bPinNumber 
+)		
+Definition at line 178 of file ESP32Encoder.cpp.
+
+References attach(), and half.
+
+Referenced by setup().
+
+
+? attachSingleEdge()
+void ESP32Encoder::attachSingleEdge	(	int 	aPintNumber,
+int 	bPinNumber 
+)		
+Definition at line 182 of file ESP32Encoder.cpp.
+
+References attach(), and single.
+
+
+? clearCount()
+int64_t ESP32Encoder::clearCount	(		)	
+Definition at line 201 of file ESP32Encoder.cpp.
+
+References count, and unit.
+
+Referenced by setup().
+
+? getCount()
+int64_t ESP32Encoder::getCount	(		)	
+Definition at line 197 of file ESP32Encoder.cpp.
+
+References count, and getCountRaw().
+
+Referenced by loop(), and setup().
+
+
+? getCountRaw()
+int64_t ESP32Encoder::getCountRaw	(		)	
+private
+Definition at line 192 of file ESP32Encoder.cpp.
+
+References unit.
+
+Referenced by getCount(), and setCount().
+
+? isAttached()
+boolean ESP32Encoder::isAttached	(		)	
+inline
+Definition at line 42 of file ESP32Encoder.h.
+
+References attached, setCount(), and setFilter().
+
+
+? pauseCount()
+int64_t ESP32Encoder::pauseCount	(		)	
+Definition at line 206 of file ESP32Encoder.cpp.
+
+References unit.
+
+Referenced by loop().
+
+? resumeCount()
+int64_t ESP32Encoder::resumeCount	(		)	
+Definition at line 210 of file ESP32Encoder.cpp.
+
+References unit.
+
+Referenced by loop().
+
+? setCount()
+void ESP32Encoder::setCount	(	int64_t 	value	)	
+Definition at line 189 of file ESP32Encoder.cpp.
+
+References count, and getCountRaw().
+
+Referenced by isAttached(), and setup().
+
+
+? setFilter()
+void ESP32Encoder::setFilter	(	uint16_t 	value	)	
+Definition at line 214 of file ESP32Encoder.cpp.
+
+References unit.
+
+Referenced by attach(), and isAttached().
+
+Field Documentation
+? aPinNumber
+gpio_num_t ESP32Encoder::aPinNumber
+Definition at line 46 of file ESP32Encoder.h.
+
+Referenced by attach(), and ESP32Encoder().
+
+? attached
+boolean ESP32Encoder::attached =false
+private
+Definition at line 22 of file ESP32Encoder.h.
+
+Referenced by attach(), ESP32Encoder(), and isAttached().
+
+? attachedInterrupt
+bool ESP32Encoder::attachedInterrupt =false
+staticprivate
+Definition at line 29 of file ESP32Encoder.h.
+
+Referenced by attach().
+
+? bPinNumber
+gpio_num_t ESP32Encoder::bPinNumber
+Definition at line 47 of file ESP32Encoder.h.
+
+Referenced by attach(), and ESP32Encoder().
+
+? count
+volatile int64_t ESP32Encoder::count =0
+Definition at line 51 of file ESP32Encoder.h.
+
+Referenced by clearCount(), getCount(), pcnt_example_intr_handler(), and setCount().
+
+? countsMode
+int ESP32Encoder::countsMode = 2
+Definition at line 50 of file ESP32Encoder.h.
+
+? direction
+bool ESP32Encoder::direction
+private
+Definition at line 26 of file ESP32Encoder.h.
+
+Referenced by ESP32Encoder().
+
+? encoders
+ESP32Encoder * ESP32Encoder::encoders
+static
+Initial value:
+= { NULL, NULL, NULL,
+    NULL,
+    NULL, NULL, NULL, NULL }
+Definition at line 45 of file ESP32Encoder.h.
+
+Referenced by attach().
+
+? fullQuad
+bool ESP32Encoder::fullQuad =false
+Definition at line 49 of file ESP32Encoder.h.
+
+Referenced by attach().
+
+? r_enc_config
+pcnt_config_t ESP32Encoder::r_enc_config
+Definition at line 52 of file ESP32Encoder.h.
+
+Referenced by attach(), and pcnt_example_intr_handler().
+
+? unit
+pcnt_unit_t ESP32Encoder::unit
+Definition at line 48 of file ESP32Encoder.h.
+
+Referenced by attach(), clearCount(), ESP32Encoder(), getCountRaw(), pauseCount(), resumeCount(), and setFilter().
+
+? useInternalWeakPullResistors
+enum puType ESP32Encoder::useInternalWeakPullResistors
+static
+Definition at line 53 of file ESP32Encoder.h.
+
+Referenced by attach(), and setup().
+
+? user_isr_handle
+pcnt_isr_handle_t ESP32Encoder::user_isr_handle = NULL
+staticprivate
+Definition at line 25 of file ESP32Encoder.h.
+
+Referenced by attach().
+
+? working
+bool ESP32Encoder::working
+private
+Definition at line 27 of file ESP32Encoder.h.
+
+Referenced by ESP32Encoder().
+
+The documentation for this class was generated from the following files:
+src/ESP32Encoder.h
+src/ESP32Encoder.cpp

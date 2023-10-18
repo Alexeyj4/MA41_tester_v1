@@ -1,6 +1,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <FontsRus/CourierCyr8.h>//long. not high
+#include <FontsRus/CourierCyr8.h>
+#include <ESP32Encoder.h>
+#include <EEPROM.h>
 
 #define uS_TO_S_FACTOR 1000000  /* коэффициент пересчета //debug
                                    микросекунд в секунды */
@@ -21,10 +23,14 @@ RTC_DATA_ATTR int bootCount = 0;
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
+
 char message[127]; //debug
 
 const int sw_pin=18;
-const gpio_num_t btn_pin=GPIO_NUM_19;
+const gpio_num_t btn_pin=GPIO_NUM_19; //иначе не работает выход из спящего режима, если просто int 19 указать
+const int enc_a_pin=4;//debug
+const int enc_b_pin=15;//debug
+
 const int uart1_rx_pin=32;
 const int uart1_tx_pin=33;
 const int i_meas_pin=36;
@@ -43,6 +49,9 @@ const int fourth_string=62;  //fourth string on LCD
 #define SERVICE_UUID            "C6FBDD3C-7123-4C9E-86AB-005F1A7EDA01"
 #define CHARACTERISTIC_UUID_RX  "B88E098B-E464-4B54-B827-79EB2B150A9F"
 #define CHARACTERISTIC_UUID_TX  "D769FACF-A4DA-47BA-9253-65359EE480FB"
+
+ESP32Encoder encoder;
+
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1); // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 
@@ -113,10 +122,17 @@ void print_wakeup_reason(){ //debug
 
 void setup() {
   // put your setup code here, to run once:
+
+  //ESP32Encoder::useInternalWeakPullResistors=UP; //debug
+  encoder.attachHalfQuad(enc_a_pin,enc_b_pin);
+  
+ 
   pinMode(sw_pin,INPUT_PULLUP);
-  pinMode(btn_pin,INPUT_PULLUP);
-  pinMode(btn_pin,INPUT_PULLUP);
+  pinMode(btn_pin,INPUT_PULLUP);  
+  pinMode(enc_a_pin,INPUT_PULLUP);  
+  pinMode(enc_b_pin,INPUT_PULLUP);  
   pinMode(i_meas_pin,INPUT);
+
   
   Serial.begin(115200, SERIAL_8N1);
   Serial1.begin(115200, SERIAL_8N1, uart1_rx_pin, uart1_tx_pin);//* UART1  -> Serial1 //RX Pin //TX Pin //Внешний
@@ -203,15 +219,19 @@ void loop() {
     pCharacteristic->notify(); 
        
   }
-  delay(1000);
-  Serial.println("Going to sleep now");// "Переход в режим сна"
-  delay(1000);
+  //delay(1000);
+  //Serial.println("Going to sleep now");// "Переход в режим сна"
+  //delay(1000);
   gpio_wakeup_enable(GPIO_NUM_19,GPIO_INTR_LOW_LEVEL);
   esp_sleep_enable_gpio_wakeup();
-  esp_light_sleep_start();
-  Serial.println("This will never be printed");
-  print_wakeup_reason();//debug
+  //esp_light_sleep_start();//debug
+  //Serial.println("This will never be printed");
+  //print_wakeup_reason();//debug
+  
+
+  Serial.println(encoder.getCount());
   delay(2000);
+
   
 
 }

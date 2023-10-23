@@ -6,9 +6,6 @@
 
 #define uS_TO_S_FACTOR 1000000  /* коэффициент пересчета //debug
                                    микросекунд в секунды */
-#define TIME_TO_SLEEP  5        /* время, в течение которого
-                                   будет спать ESP32 (в секундах) */
-
 RTC_DATA_ATTR int bootCount = 0;
 
 
@@ -55,30 +52,19 @@ ESP32Encoder encoder;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1); // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 
-
-//// Контакт для передачи данных DS18B20 подключаем к GPIO27 на ESP32: 
-//#define ONE_WIRE_BUS 27
-//// Создаем объект «oneWire» для коммуникации с OneWire-устройствами:
-//OneWire oneWire(ONE_WIRE_BUS);
-//// Передаем объект «oneWire» объекту температурного датчика DS18B20:
-//DallasTemperature sensors(&oneWire);
-
 BLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
-
-// переменная для температурных данных
-// и константа для контакта, к которому подключен светодиод:
-//float temperature = 0;
-//const int ledPin = 26;
 
 // функции обратного вызова, которые будут запускаться
 // при подключении и отключении BLE-клиента от BLE-сервера:
 class MyServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     deviceConnected = true;
+    Serial.println("Connected");
   };
   void onDisconnect(BLEServer* pServer) {
     deviceConnected = false;
+    Serial.println("Disconnected");
   }
 };
 
@@ -137,11 +123,7 @@ void setup() {
   Serial.begin(115200, SERIAL_8N1);
   Serial1.begin(115200, SERIAL_8N1, uart1_rx_pin, uart1_tx_pin);//* UART1  -> Serial1 //RX Pin //TX Pin //Внешний
   Serial2.begin(115200, SERIAL_8N1); //Внутренний
-
-  print_wakeup_reason();//debug
-  //esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  //Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds");
-    
+   
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.setFont(&CourierCyr8pt8b);
   display.setTextSize(1);             
@@ -191,47 +173,17 @@ void loop() {
   // put your main code here, to run repeatedly:
   // Если устройство подключено... 
   if(deviceConnected) {
-    // ...измеряем температуру:
-    //sensors.requestTemperatures();
-    
-    
-    // Температура в градусах Цельсия:
-    //temperature = sensors.getTempCByIndex(0);
-    // Раскомментируйте строчку ниже,
-    // если хотите получать температуру в градусах Фаренгейта
-    // (но также закомментируйте строчку выше для градусов Цельсия): 
-    //temperature = sensors.getTempFByIndex(0); // температура в  
-                                                // градусах Фаренгейта 
-    
-    // конвертируем значение в массив символов:
-    //char txString[8];
-    //dtostrf(temperature, 1, 2, txString);
-    
-    // задаем новое значение для характеристики:
-    //pCharacteristic->setValue(txString);
-    
-    
-      
-    message[0]=Serial.read();
-      
-    pCharacteristic->setValue(message);
-    // отправляем значение Android-приложению:
-    pCharacteristic->notify(); 
-       
-  }
-  //delay(1000);
-  //Serial.println("Going to sleep now");// "Переход в режим сна"
-  //delay(1000);
+    if(Serial.available()){
+      message[0]=Serial.read();
+      pCharacteristic->setValue(message);
+      // отправляем значение Android-приложению:
+      pCharacteristic->notify();     
+    }  
+  }  
   gpio_wakeup_enable(GPIO_NUM_19,GPIO_INTR_LOW_LEVEL);
   esp_sleep_enable_gpio_wakeup();
-  //esp_light_sleep_start();//debug
-  //Serial.println("This will never be printed");
+  //esp_light_sleep_start();//debug  
   //print_wakeup_reason();//debug
-  
-
-  Serial.println(encoder.getCount());
-  delay(2000);
-
-  
+  //Serial.println(encoder.getCount()); //debug
 
 }

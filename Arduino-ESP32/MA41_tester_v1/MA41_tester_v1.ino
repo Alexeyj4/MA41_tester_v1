@@ -1,8 +1,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <FontsRus/CourierCyr8.h>
-#include <ESP32Encoder.h>
-#include <EEPROM.h>
+//#include <ESP32Encoder.h>
+//#include <EEPROM.h>
 
 #define uS_TO_S_FACTOR 1000000  /* коэффициент пересчета //debug
                                    микросекунд в секунды */
@@ -47,7 +47,7 @@ const int fourth_string=62;  //fourth string on LCD
 #define CHARACTERISTIC_UUID_RX  "B88E098B-E464-4B54-B827-79EB2B150A9F"
 #define CHARACTERISTIC_UUID_TX  "D769FACF-A4DA-47BA-9253-65359EE480FB"
 
-ESP32Encoder encoder;
+//ESP32Encoder encoder;
 
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1); // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
@@ -70,32 +70,32 @@ class MyServerCallbacks: public BLEServerCallbacks {
 
 // функция обратного вызова, которая будет запускаться
 // при получении нового значения от Android-приложения:
-class MyCallbacks: public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *pCharacteristic) {
-    std::string rxValue = pCharacteristic->getValue();
-    if(rxValue.length() > 0) {
-      //Serial.print("Received value: ");  //  "Полученное значение: "
-      for(int i = 0; i < rxValue.length(); i++) {
-        //Serial.print(rxValue[i]);
-      }
-      // включаем и выключаем светодиод согласно полученной команде:
-      if(rxValue.find("ON") != -1) { 
-        //Serial.println(" - LED ON");  //  " - светодиод включен"
-        //digitalWrite(ledPin, HIGH);
-      }
-      else if(rxValue.find("OFF") != -1) {
-        //Serial.println(" - LED OFF");  //  " - светодиод выключен"
-        //digitalWrite(ledPin, LOW);
-      }
-    }
-  }
-};
+//class MyCallbacks: public BLECharacteristicCallbacks {
+//  void onWrite(BLECharacteristic *pCharacteristic) {
+//    std::string rxValue = pCharacteristic->getValue();
+//    if(rxValue.length() > 0) {
+//      //Serial.print("Received value: ");  //  "Полученное значение: "
+//      for(int i = 0; i < rxValue.length(); i++) {
+//        //Serial.print(rxValue[i]);
+//      }
+//      // включаем и выключаем светодиод согласно полученной команде:
+//      if(rxValue.find("ON") != -1) { 
+//        //Serial.println(" - LED ON");  //  " - светодиод включен"
+//        //digitalWrite(ledPin, HIGH);
+//      }
+//      else if(rxValue.find("OFF") != -1) {
+//        //Serial.println(" - LED OFF");  //  " - светодиод выключен"
+//        //digitalWrite(ledPin, LOW);
+//      }
+//    }
+//  }
+//};
 
 void setup() {
   // put your setup code here, to run once:
 
   //ESP32Encoder::useInternalWeakPullResistors=UP; //debug
-  encoder.attachHalfQuad(enc_a_pin,enc_b_pin);
+  //encoder.attachHalfQuad(enc_a_pin,enc_b_pin);
   
  
   pinMode(sw_pin,INPUT_PULLUP);
@@ -106,8 +106,8 @@ void setup() {
 
   
   Serial.begin(115200, SERIAL_8N1);
-  Serial1.begin(115200, SERIAL_8N1, uart1_rx_pin, uart1_tx_pin);//* UART1  -> Serial1 //RX Pin //TX Pin //Внешний
-  Serial2.begin(115200, SERIAL_8N1); //Внутренний
+//  Serial1.begin(115200, SERIAL_8N1, uart1_rx_pin, uart1_tx_pin);//* UART1  -> Serial1 //RX Pin //TX Pin //Внешний
+//  Serial2.begin(115200, SERIAL_8N1); //Внутренний
    
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.setFont(&CourierCyr8pt8b);
@@ -142,7 +142,7 @@ void setup() {
                                CHARACTERISTIC_UUID_RX,
                                BLECharacteristic::PROPERTY_WRITE);
 
-  pCharacteristic->setCallbacks(new MyCallbacks());
+//  pCharacteristic->setCallbacks(new MyCallbacks());
 
   // Запускаем сервис:
   pService->start();

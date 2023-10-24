@@ -74,37 +74,22 @@ class MyCallbacks: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     std::string rxValue = pCharacteristic->getValue();
     if(rxValue.length() > 0) {
-      Serial.print("Received value: ");  //  "Полученное значение: "
+      //Serial.print("Received value: ");  //  "Полученное значение: "
       for(int i = 0; i < rxValue.length(); i++) {
-        Serial.print(rxValue[i]);
+        //Serial.print(rxValue[i]);
       }
       // включаем и выключаем светодиод согласно полученной команде:
       if(rxValue.find("ON") != -1) { 
-        Serial.println(" - LED ON");  //  " - светодиод включен"
+        //Serial.println(" - LED ON");  //  " - светодиод включен"
         //digitalWrite(ledPin, HIGH);
       }
       else if(rxValue.find("OFF") != -1) {
-        Serial.println(" - LED OFF");  //  " - светодиод выключен"
+        //Serial.println(" - LED OFF");  //  " - светодиод выключен"
         //digitalWrite(ledPin, LOW);
       }
     }
   }
 };
-
-
-void print_wakeup_reason(){ //debug
-  esp_sleep_wakeup_cause_t wakeup_reason;
-
-  wakeup_reason = esp_sleep_get_wakeup_cause();
-
-  switch(wakeup_reason)
-  {
-    case ESP_SLEEP_WAKEUP_GPIO: Serial.println("Wakeup caused by GPIO"); break;
-    default : Serial.println("Other cause of wakeup"); break;   
-  }
-}
-
-
 
 void setup() {
   // put your setup code here, to run once:

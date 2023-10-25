@@ -3,6 +3,8 @@
 #include <FontsRus/CourierCyr8.h>
 //#include <ESP32Encoder.h>
 //#include <EEPROM.h>
+#include <AbleButtons.h>
+
 
 #define uS_TO_S_FACTOR 1000000  /* коэффициент пересчета //debug
                                    микросекунд в секунды */
@@ -20,9 +22,6 @@ RTC_DATA_ATTR int bootCount = 0;
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
-
-char message[127]; //debug
-
 const int sw_pin=18;
 const gpio_num_t btn_pin=GPIO_NUM_19; //иначе не работает выход из спящего режима, если просто int 19 указать
 const int enc_a_pin=4;//debug
@@ -39,6 +38,20 @@ const int first_string=12;  //first string on LCD
 const int second_string=28;  //second string on LCD
 const int third_string=44;  //third string on LCD
 const int fourth_string=62;  //fourth string on LCD
+
+int message_i=0;
+
+// Identify which buttons you are using...
+using Button = AblePullupCallbackButton;
+using ButtonList = AblePullupCallbackButtonList;
+
+// Declaration of callback function defined later.
+void buttonableCallback(Button::CALLBACK_EVENT, uint8_t);
+
+Button btn(int(btn_pin), buttonableCallback); // The button to check.
+
+
+String message_str="";
 
 // НЕ МЕНЯЙТЕ ЭТИ UUID.
 // Если поменяете, вам также нужно будет поменять их
@@ -65,6 +78,11 @@ class MyServerCallbacks: public BLEServerCallbacks {
   void onDisconnect(BLEServer* pServer) {
     deviceConnected = false;
     Serial.println("Disconnected");
+
+    // Начинаем рассылку оповещений:
+    pServer->getAdvertising()->start();
+    Serial.println("Waiting to connect...");
+    //  "Ждем подключения..."
   }
 };
 
@@ -97,7 +115,8 @@ void setup() {
   //ESP32Encoder::useInternalWeakPullResistors=UP; //debug
   //encoder.attachHalfQuad(enc_a_pin,enc_b_pin);
   
- 
+  btn.begin();
+  
   pinMode(sw_pin,INPUT_PULLUP);
   pinMode(btn_pin,INPUT_PULLUP);  
   pinMode(enc_a_pin,INPUT_PULLUP);  
@@ -156,11 +175,14 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  btn.handle();
+  
   // Если устройство подключено... 
   if(deviceConnected) {
     if(Serial.available()){
-      message[0]=Serial.read();
-      pCharacteristic->setValue(message);
+      message_str=Serial.readString();
+      pCharacteristic->setValue(message_str.c_str());
       // отправляем значение Android-приложению:
       pCharacteristic->notify();     
     }  
@@ -171,4 +193,18 @@ void loop() {
   //print_wakeup_reason();//debug
   //Serial.println(encoder.getCount()); //debug
 
+}
+
+void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {
+  if(event == Button::PRESSED_EVENT) {
+    message_i=message_i+1;    
+    message_str=message_i;
+    pCharacteristic->setValue(message_str.c_str());
+    Serial.print(message_i);
+    Serial.print("-");
+    Serial.println(message_str);
+    
+    // отправляем значение Android-приложению:
+    pCharacteristic->notify();
+  } 
 }

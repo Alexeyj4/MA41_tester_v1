@@ -86,28 +86,24 @@ class MyServerCallbacks: public BLEServerCallbacks {
   }
 };
 
-// функция обратного вызова, которая будет запускаться
-// при получении нового значения от Android-приложения:
-//class MyCallbacks: public BLECharacteristicCallbacks {
-//  void onWrite(BLECharacteristic *pCharacteristic) {
-//    std::string rxValue = pCharacteristic->getValue();
-//    if(rxValue.length() > 0) {
-//      //Serial.print("Received value: ");  //  "Полученное значение: "
-//      for(int i = 0; i < rxValue.length(); i++) {
-//        //Serial.print(rxValue[i]);
-//      }
-//      // включаем и выключаем светодиод согласно полученной команде:
-//      if(rxValue.find("ON") != -1) { 
-//        //Serial.println(" - LED ON");  //  " - светодиод включен"
-//        //digitalWrite(ledPin, HIGH);
-//      }
-//      else if(rxValue.find("OFF") != -1) {
-//        //Serial.println(" - LED OFF");  //  " - светодиод выключен"
-//        //digitalWrite(ledPin, LOW);
-//      }
-//    }
-//  }
-//};
+ //функция обратного вызова, которая будет запускаться
+ //при получении нового значения от Android-приложения:
+class MyCallbacks: public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    std::string rxValue = pCharacteristic->getValue();
+    String s;
+    if(rxValue.length() > 0) {      
+      for(int i = 0; i < rxValue.length(); i++) {
+        s=s+rxValue[i];
+      }
+    }
+    Serial.println(s);
+    display.clearDisplay();
+    display.setCursor(0,first_string);  
+    display.println(s);
+    display.display();
+  }
+};
 
 void setup() {
   // put your setup code here, to run once:
@@ -161,7 +157,7 @@ void setup() {
                                CHARACTERISTIC_UUID_RX,
                                BLECharacteristic::PROPERTY_WRITE);
 
-//  pCharacteristic->setCallbacks(new MyCallbacks());
+  pCharacteristic->setCallbacks(new MyCallbacks());
 
   // Запускаем сервис:
   pService->start();

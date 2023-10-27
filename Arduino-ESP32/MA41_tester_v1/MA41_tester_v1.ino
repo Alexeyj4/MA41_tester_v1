@@ -1,9 +1,10 @@
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <FontsRus/CourierCyr8.h>
-//#include <ESP32Encoder.h>
-//#include <EEPROM.h>
-#include <AbleButtons.h>
+#include "lib/Adafruit_GFX/Adafruit_GFX.h"
+#include "lib/Adafruit_SSD1306/Adafruit_SSD1306.h"
+#include "lib/FontsRus/CourierCyr8.h"
+#include "lib/ESP32Encoder/ESP32Encoder.h"
+#include <EEPROM.h>
+#include "lib/AbleButtons/AbleButtons.h"
+#include "lib/Oled/Oled.h"
 
 
 #define uS_TO_S_FACTOR 1000000  /* коэффициент пересчета //debug

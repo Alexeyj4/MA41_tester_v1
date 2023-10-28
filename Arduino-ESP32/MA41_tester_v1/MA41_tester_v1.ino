@@ -35,10 +35,10 @@ const int i_meas_pin=36;
 
 const int SCREEN_WIDTH=128; // OLED display width, in pixels
 const int SCREEN_HEIGHT=64; // OLED display height, in pixels
-const int first_string=12;  //first string on LCD
-const int second_string=28;  //second string on LCD
-const int third_string=44;  //third string on LCD
-const int fourth_string=62;  //fourth string on LCD
+const int oled_string_pos[]={12,28,44,62}; //first, second, thirth, fourth string on OLED
+String oled_text={"","","",""};//text on OLED
+bool oled_str_changed={0,0,0,0};//OLED strings needs to update
+bool oled_need_update=0;//OLED need update flag
 
 int message_i=0;
 
@@ -75,10 +75,18 @@ class MyServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     deviceConnected = true;
     Serial.println("Connected");
+    display.clearDisplay();
+    display.setCursor(0,oled_string_pos[0]);  
+    display.println("Connected");
+    display.display();
   };
   void onDisconnect(BLEServer* pServer) {
     deviceConnected = false;
     Serial.println("Disconnected");
+    display.clearDisplay();
+    display.setCursor(0,oled_string_pos[0]);  
+    display.println("Disconnected");
+    display.display();
 
     // Начинаем рассылку оповещений:
     pServer->getAdvertising()->start();
@@ -100,7 +108,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
     }
     Serial.println(s);
     display.clearDisplay();
-    display.setCursor(0,first_string);  
+    display.setCursor(0,oled_string_pos[0]);  
     display.println(s);
     display.display();
   }
@@ -125,12 +133,13 @@ void setup() {
 //  Serial1.begin(115200, SERIAL_8N1, uart1_rx_pin, uart1_tx_pin);//* UART1  -> Serial1 //RX Pin //TX Pin //Внешний
 //  Serial2.begin(115200, SERIAL_8N1); //Внутренний
    
+  
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.setFont(&CourierCyr8pt8b);
   display.setTextSize(1);             
   display.setTextColor(WHITE);  
   display.clearDisplay();
-  display.setCursor(0,first_string);  
+  display.setCursor(0,oled_string_pos[0]);  
   display.println("loading OS...");
   display.display(); 
    

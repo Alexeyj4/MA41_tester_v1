@@ -34,7 +34,9 @@ const int i_meas_pin=36;
 
 class OLED{
   public:
-    OLED(int n){
+    OLED(){
+      pinMode(2, OUTPUT);
+      digitalWrite(2, HIGH);
       screen_width=128;
       screen_height=64;            
       oled_string_pos[0]=12; oled_string_pos[1]=28; oled_string_pos[2]=44; oled_string_pos[3]=62;
@@ -95,7 +97,7 @@ class OLED{
     }
 };
 
-OLED oled1(1);
+OLED oled;
 
 int message_i=0;
 
@@ -132,17 +134,17 @@ class MyServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     deviceConnected = true;
     Serial.println("Connected");
-    oled1.print(0,"Connected");
+    oled.print(0,"Connected");
   };
   void onDisconnect(BLEServer* pServer) {
     deviceConnected = false;
     Serial.println("Disconnected");
-    oled1.print(0,"Disconnected");
+    oled.print(0,"Disconnected");
 
     // Начинаем рассылку оповещений:
     pServer->getAdvertising()->start();
     Serial.println("Waiting to connect...");
-    oled1.print(0,"Waiting to connect...");
+    oled.print(0,"Waiting to connect...");
     //  "Ждем подключения..."
   }
 };
@@ -159,7 +161,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       }
     }
     Serial.println(s);
-    oled1.print(0,s);    
+    oled.print(0,s);    
   }
 };
 
@@ -182,7 +184,7 @@ void setup() {
 //  Serial1.begin(115200, SERIAL_8N1, uart1_rx_pin, uart1_tx_pin);//* UART1  -> Serial1 //RX Pin //TX Pin //Внешний
 //  Serial2.begin(115200, SERIAL_8N1); //Внутренний
    
-  oled1.test();//debug
+  //oled1.test();//debug
   
   // создаем BLE-устройство:
   BLEDevice::init("ESP32_Board");
@@ -213,7 +215,7 @@ void setup() {
   // Начинаем рассылку оповещений:
   pServer->getAdvertising()->start();
   Serial.println("Waiting to connect...");
-  oled1.print(0,"Waiting to connect...");
+  oled.print(0,"Waiting to connect...");
              //  "Ждем подключения..."
 }
 

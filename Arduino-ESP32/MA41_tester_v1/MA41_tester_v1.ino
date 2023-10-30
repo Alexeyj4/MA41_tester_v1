@@ -1,7 +1,8 @@
-#include "lib/ESP32Encoder/ESP32Encoder.h"
+#include <Oled.h>
+#include "libraries/ESP32Encoder/ESP32Encoder.h"
 #include <EEPROM.h>
 #include <AbleButtons.h>
-#include "lib/Oled/Oled.h"
+
 
 
 #define uS_TO_S_FACTOR 1000000  /* коэффициент пересчета //debug
@@ -32,7 +33,7 @@ const int i_meas_pin=36;
 
 
 
-OLED oled;
+Oled oled;
 
 int message_i=0;
 

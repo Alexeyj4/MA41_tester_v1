@@ -1,24 +1,6 @@
-#pragma once
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <CourierCyr8.h>
+#include "Oled.h"
 
-class OLED{
-  public:
-    OLED();
-    void begin();
-    void update();
-    void print(int row, String s);        
-    int screen_width; // OLED display width, in pixels
-    int screen_height; // OLED display height, in pixels    
-    int oled_string_pos[4];//positon for each string on oled
-    String oled_text[4];//text on OLED
-    bool oled_str_changed[4];//OLED strings needs to update
-    bool oled_need_update;//OLED need update flag
-    Adafruit_SSD1306 display;
-};
-  
-OLED::OLED(){
+Oled::Oled(){
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH);
   screen_width=128;
@@ -29,8 +11,7 @@ OLED::OLED(){
   oled_need_update=0;
 }   
   
-void OLED::begin(){
-
+void Oled::begin(){
   Adafruit_SSD1306 display(screen_width, screen_height, &Wire, -1); // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)  
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   display.setFont(&CourierCyr8pt8b);
@@ -43,7 +24,7 @@ void OLED::begin(){
   delay(1000);       
 }
 
-void OLED::update(){
+void Oled::update(){
   if(oled_need_update){
     display.display();
     for(int i=0;i<=3;i++){
@@ -57,7 +38,8 @@ void OLED::update(){
     oled_need_update=0;
   }
 }
-void OLED::print(int row, String s){
+
+void Oled::print(int row, String s){
   oled_need_update=1;
   oled_str_changed[row]=1;
   oled_text[row]=s;

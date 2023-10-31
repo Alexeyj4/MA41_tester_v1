@@ -1,6 +1,5 @@
+#include <ESP32Encoder.h>
 #include <Oled.h>
-#include "libraries/ESP32Encoder/ESP32Encoder.h"
-#include <EEPROM.h>
 #include <AbleButtons.h>
 
 

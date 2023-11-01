@@ -1,4 +1,4 @@
-#include <ESP32Encoder.h>
+//#include <ESP32Encoder.h>
 #include <Oled.h>
 #include <AbleButtons.h>
 
@@ -158,7 +158,8 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  //oled.update();
+  oled.update();
+  delay(500);
   btn.handle();
   
   // Если устройство подключено... 

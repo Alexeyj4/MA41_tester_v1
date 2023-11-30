@@ -1,6 +1,8 @@
 #include <Oled.h>
 #include <Ble.h>
 
+static bool deviceConnected;
+
 Oled oled;
 Ble ble;
 
@@ -10,8 +12,8 @@ void setup() {
 }
 
 void loop() {
-  oled.update();  
+  //oled.update();  
   delay(1000);
-  ble.send("aaaaa");
+  //ble.send("aaaaa");
   delay(3000);  
 }

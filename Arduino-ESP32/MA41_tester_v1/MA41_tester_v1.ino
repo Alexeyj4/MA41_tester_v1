@@ -1,8 +1,6 @@
 #include <Oled.h>
 #include <Ble.h>
 
-//static bool deviceConnected;
-
 Oled oled;
 Ble ble;
 

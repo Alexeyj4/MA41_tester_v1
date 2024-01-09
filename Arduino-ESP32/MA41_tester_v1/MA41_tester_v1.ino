@@ -11,7 +11,7 @@ void setup() {
 
 void loop() {
   //oled.update();  
-  delay(1000);
+  delay(5000);
   //ble.send("aaaaa");
-  delay(3000);  
+  delay(5000);  
 }

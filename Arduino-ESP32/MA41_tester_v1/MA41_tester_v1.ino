@@ -4,7 +4,8 @@
 Oled oled;
 Ble ble;
 
-void setup() {    
+void setup() { 
+  Serial.begin(115200);   
   ble.begin();
   oled.begin();
 }

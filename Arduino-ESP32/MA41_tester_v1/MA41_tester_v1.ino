@@ -23,13 +23,13 @@ void setup() {
 
 void loop() {
   oled.update();  
-  delay(500);
+  delay(50);
   btn.handle();     
 }
 
 void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {
   if(event == Button::PRESSED_EVENT) {
     Serial.println("button pressed");
-    ble.send(const String& "aaaaa");    
+    ble.send("test");    
   } 
 }

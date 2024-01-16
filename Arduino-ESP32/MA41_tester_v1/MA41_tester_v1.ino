@@ -22,6 +22,10 @@ void setup() {
 }
 
 void loop() {
+  if(ble.recvd()!=""){
+    oled.print(1,ble.recvd());
+    ble.clr();
+  }
   oled.update();  
   delay(50);
   btn.handle();     
@@ -30,6 +34,6 @@ void loop() {
 void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {
   if(event == Button::PRESSED_EVENT) {
     Serial.println("button pressed");
-    ble.send("test");    
+    ble.send("test");        
   } 
 }

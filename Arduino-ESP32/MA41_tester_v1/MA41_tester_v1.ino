@@ -1,3 +1,4 @@
+//tests: I, adf tst 50, at addr - exe x sys info, alm
 #define CONTROL_CHAR 13 //у Женьки управляющий символ в МАУПах в UART: \r CR
 #define BLE_MODULE_NAME MA41_tester
 #define OLED_DISPLAY_TYPE SSD1306
@@ -14,6 +15,9 @@ String intMArecvdStr="";
 String extMArecvdStr="";
 bool intMArecvdFlag=0;//получена строка с внутреннего МА
 bool extMArecvdFlag=0;//получена строка с внешнего МА
+
+bool extMArecvdATADDRflag=0;
+
 
 Oled oled;
 Ble ble;
@@ -45,10 +49,8 @@ void loop() {
   maUpdate();
   oled.update();  
   btn.handle(); 
-  if(extMArecvdFlag==1){    
-    oled.prints(extMAread());
-    //Serial.println(extMAread());//debug
-  }    
+  if(intMArecvdFlag==1){   Serial.println(intMAread());  }    
+  if(extMArecvdFlag==1){   Serial.println(extMAread());  } 
 }
 
 void maUpdate(){
@@ -96,9 +98,14 @@ void extMAsend(String s){
   Serial1.write(CONTROL_CHAR);    
 }
 
+void tests(){
+  
+}
+
+
 void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {
   if(event == Button::PRESSED_EVENT) {
-    extMAsend("at addr");
+    tests();    
   }        
   static int msg_iter=0;
   msg_iter++;

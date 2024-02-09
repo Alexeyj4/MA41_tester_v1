@@ -1,4 +1,6 @@
-#define OLED_DISPLAY_TYPE 96
+#define CONTROL_CHAR 13 //у Женьки управляющий символ в МАУПах в UART: \r CR
+#define BLE_MODULE_NAME MA41_tester
+#define OLED_DISPLAY_TYPE SSD1306
 #include <Oled.h>
 #include <Ble.h>
 #include <AbleButtons.h>
@@ -7,6 +9,11 @@ const int sw_pin=18;
 const int uart1_rx_pin=32;
 const int uart1_tx_pin=33;
 const int i_meas_pin=36;
+
+String intMArecvdStr="";
+String extMArecvdStr="";
+bool intMArecvdFlag=0;//получена строка с внутреннего МА
+bool extMArecvdFlag=0;//получена строка с внешнего МА
 
 Oled oled;
 Ble ble;
@@ -30,20 +37,70 @@ void setup() {
   btn.begin();  
 }
 
-void loop() {
+void loop() {  
   if(ble.recvd()!=""){
-    oled.prints(ble.recvd());
+    oled.prints(ble.recvd());    
     ble.clr();
   }
+  maUpdate();
   oled.update();  
-  delay(50);
-  btn.handle();     
+  btn.handle(); 
+  if(extMArecvdFlag==1){    
+    oled.prints(extMAread());
+    //Serial.println(extMAread());//debug
+  }    
+}
+
+void maUpdate(){
+  char c;
+  if(Serial2.available()){    
+    intMArecvdFlag=0;
+    c=Serial2.read();    
+    if(c==CONTROL_CHAR){      
+      intMArecvdFlag=1;
+      return;
+    }
+    intMArecvdStr=intMArecvdStr+String(c);
+  }
+  if(Serial1.available()){    
+    extMArecvdFlag=0;
+    c=Serial1.read();    
+    if(c==CONTROL_CHAR){
+      extMArecvdFlag=1;
+      return;
+    }
+    extMArecvdStr=extMArecvdStr+String(c);
+  }
+}
+
+String intMAread(){
+  String s=intMArecvdStr;
+  intMArecvdStr="";
+  intMArecvdFlag=0;
+  return s;  
+}
+
+String extMAread(){
+  String s=extMArecvdStr;
+  extMArecvdStr="";
+  extMArecvdFlag=0;
+  return s;  
+}
+
+void intMAsend(String s){
+  Serial2.print(s);    
+  Serial2.write(CONTROL_CHAR);    
+}
+void extMAsend(String s){
+  Serial1.print(s);  
+  Serial1.write(CONTROL_CHAR);    
 }
 
 void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {
-  if(event == Button::PRESSED_EVENT) {    
-    static int msg_iter=0;
-    msg_iter++;
-    ble.send("test"+String(msg_iter));        
-  } 
-}
+  if(event == Button::PRESSED_EVENT) {
+    extMAsend("at addr");
+  }        
+  static int msg_iter=0;
+  msg_iter++;
+  ble.send("test"+String(msg_iter)); 
+} 

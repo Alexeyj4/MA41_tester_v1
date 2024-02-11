@@ -1,4 +1,4 @@
-//tests: I, adf tst 50, at addr - exe x sys info, alm
+//tests: измерение Iпотр, at addr - считывание, adf tst 50, приём alm
 #define CONTROL_CHAR 13 //у Женьки управляющий символ в МАУПах в UART: \r CR
 #define BLE_MODULE_NAME MA41_tester
 #define OLED_DISPLAY_TYPE SSD1306
@@ -15,31 +15,32 @@ const int UART1_RX_PIN=32;
 const int UART1_TX_PIN=33;
 const int I_MEAS_PIN=36;
 
-int test_i_result;
-String test_adf50_result;
+int test_i_result; //результат теста тока потребления
+String test_adf50_result; //результат теста ADF TST 50
 
-String intMArecvdStr="";
-String extMArecvdStr="";
-bool intMArecvdFlag=0;//получена строка с внутреннего МА
-bool extMArecvdFlag=0;//получена строка с внешнего МА
-bool extMArecvdATADDRflag=0;
+String intMArecvdStr="";//буфер. Строка, полученная из МА.
+String extMArecvdStr="";//-//-
+bool intMArecvdFlag=0;//если получена строка с внутреннего МА (если получен в конце упр.символ) 
+bool extMArecvdFlag=0;//если получена строка с внешнего МА (если получен в конце упр.символ)
+String extMArecvdATADDR="";//строка, полученная при чтении AT ADDR
+bool extMArecvdATADDRflag=0;//если с МА считан AT ADDR успешно
 
 Oled oled;
 Ble ble;
 
 void setup();
 void loop();
-void maUpdate();
-String intMAread();
-String extMAread();
-void MAclr_read_buffer();
-void intMAclr_read_buffer();
-void extMAclr_read_buffer();
-void intMAsend(String s);
-void extMAsend(String s);
-int test_i();
-int test_adf50();
-int tests();
+void maUpdate(); //cитывает из обоих UART строку до управляющего символа (если она там есть). Помещает её в буфер intMArecvdStr и extMArecvdStr.  Ставит флаги intMArecvdFlag extMArecvdFlag
+String intMAread(); //возвращает считанную строку. Стирает строку в буфере intMArecvdStr. Сбрасывает флаг intMArecvdFlag
+String extMAread(); // -//-
+void MAclr_read_buffer(); //делает (ниже) для обоих МА
+void intMAclr_read_buffer(); //Стирает строку в буфере intMArecvdStr. Сбрасывает флаг intMArecvdFlag
+void extMAclr_read_buffer(); // -//-
+void intMAsend(String s); //отправляет строку. Добавляет в конце упр.символ
+void extMAsend(String s); //-//-
+int test_i(); //проверяет ток потребления 1-ок
+int test_read_ataddr(); //считывает At ADDR 1-ок заполняет extMArecvdATADDR extMArecvdATADDRflag
+int tests(); //проводит последовательно все тесты. Выводит сообщения на экран
 //void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id);
 
 // Identify which buttons you are using...
@@ -161,20 +162,46 @@ int test_i(){
     else{return 0;}
 }
 
+int test_read_ataddr(){
+  extMArecvdATADDR="";
+  extMArecvdATADDRflag=0;    
+  MAclr_read_buffer();  
+  for(int i=1;i<=5;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. сбои    
+    extMAsend("at addr");
+    delay(50);
+    for(int i=1;i<=5;i++){          //делает неск.считываний, т.к. получает эхо и др.
+        maUpdate();
+        String s=extMAread(); 
+        if(s.startsWith("[0] ")){
+          extMArecvdATADDR=s.substring(4,10);               
+          extMArecvdATADDRflag=1;
+          oled.prints(extMArecvdATADDR);//debug
+          return 1;
+        }
+    }
+  }
+  return 0;
+  
+}
+
 int test_adf50(){
+  if(extMArecvdATADDRflag==0){return 0;} //AT ADDR не был считан. Тест не получится провести.
+  String str_to_send="";
   test_adf50_result="";  
   MAclr_read_buffer();
-  for(int i=1;i<=5;i++){          
+  for(int i=1;i<=5;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. 49/50/50, например, а не 50/50/50
     MAclr_read_buffer;
-    intMAsend("exe 0x0007 adf tst 50");    
-    delay(5000);    
-    for(int j=1;j<=5;j++){      
+    str_to_send="exe ";
+    str_to_send=str_to_send+extMArecvdATADDR;
+    str_to_send=str_to_send+" adf tst 50";
+    intMAsend(str_to_send);    
+    delay(2000);    //таймаут. раньше не успевает провести 50 тестов ADF
+    for(int i=1;i<=5;i++){      //считывает строку несколько раз, пока не увидит ответ 50/50/50. Т.к. приходит эхо и могут прийти информационные сообщения
       maUpdate();
       extMAclr_read_buffer();
       if(intMArecvdFlag==1){
         String s=intMAread();
-        maUpdate();
-        oled.prints(s);//debug  
+        //oled.prints(s);//debug  
         if(s.startsWith("[0] [0] ")){
           test_adf50_result=s.substring(8,16);          
           if(test_adf50_result=="50/50/50"){
@@ -199,6 +226,11 @@ int tests(){
       //return 0;//debug
   }
 
+  if(test_read_ataddr()){ oled.prints("at addr-ok"); }
+    else { 
+      oled.prints( "at addr-плох "); return 0;
+  } 
+  
   if(test_adf50()){ oled.prints("adf tst-ok"); }
     else { 
       oled.prints( "adf="+test_adf50_result) ;

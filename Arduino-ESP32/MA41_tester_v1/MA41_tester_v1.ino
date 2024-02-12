@@ -1,15 +1,22 @@
+//lamp alm src //[0] 0xFFFF - есть алярм по 157,325 //[0] 0x0000 - нет алярма
 //tests: измерение Iпотр, at addr - считывание, adf tst 50, приём alm
+
 #define CONTROL_CHAR 13 //у Женьки управляющий символ в МАУПах в UART: \r CR
 #define BLE_MODULE_NAME MA41_tester
 #define OLED_DISPLAY_TYPE SSD1306
-#define I_MEAS_MIN 95
-#define I_MEAS_MAX 125
+#define I_MEAS_MIN 95 //минимально доустимый ток
+#define I_MEAS_MAX 125 //максимально доустимый ток
 #define I_ADC_TO_MA_COEF 3.2//перевод ADC в мА I=ADC/i_adc_to_ma_coef
 #define PRINT_PAUSE 500//пауза при выводе новой строки
+#define TEST_RETRY 7 //кол-во попыток теста
+#define READ_STRING_RETRY 10 //попытки найти нужную строку среди ненужных
+#define ADF_TST_WAITING 2000 //время ожидания прохождения adf tst 50
+
 #include <Oled.h>
 #include <Ble.h>
 #include <AbleButtons.h>
-const gpio_num_t BTN_PIN=GPIO_NUM_19; //кнопка энкодера. иначе не работает выход из спящего режима, если просто int 19 указать
+
+const gpio_num_t BTN_PIN=GPIO_NUM_19; //кнопка энкодера. gpio_num_t а не int иначе не работает выход из спящего режима, если просто int 19 указать
 const int SW_PIN=18;
 const int UART1_RX_PIN=32;
 const int UART1_TX_PIN=33;
@@ -40,6 +47,8 @@ void intMAsend(String s); //отправляет строку. Добавляе�
 void extMAsend(String s); //-//-
 int test_i(); //проверяет ток потребления 1-ок
 int test_read_ataddr(); //считывает At ADDR 1-ок заполняет extMArecvdATADDR extMArecvdATADDRflag
+int test_at(); //проверяет ответ по AT86 1-ок
+int test_alarm();//проверят, принял ли МАУП alarm по 157.325МГц
 int tests(); //проводит последовательно все тесты. Выводит сообщения на экран
 //void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id);
 
@@ -73,10 +82,12 @@ void loop() {
     ble.clr();
   }
   maUpdate();
-  extMAclr_read_buffer();
-  intMAclr_read_buffer();
+  intMAread();
+  extMAread();
+  //extMAclr_read_buffer();
+  //intMAclr_read_buffer();
   oled.update();  
-  btn.handle(); 
+  btn.handle();   
 }
 
 void maUpdate(){
@@ -121,9 +132,9 @@ String extMAread(){
   return s;  
 }
 
-void MAclr_read_buffer(){
-  intMAclr_read_buffer();
-  extMAclr_read_buffer(); 
+void MAclr_read_buffer(){  
+  extMAclr_read_buffer();
+  intMAclr_read_buffer(); 
 }
 
 void intMAclr_read_buffer(){
@@ -157,25 +168,25 @@ int test_i(){
     delay(10);
     i_sum=i_sum+analogRead(I_MEAS_PIN);        
   }  
-  int test_i_rezult=int(i_sum/10);  
-  if( (test_i_rezult>=I_MEAS_MIN) && (test_i_rezult<=I_MEAS_MAX)){return 1;}
-    else{return 0;}
+  test_i_result=int(i_sum/10);  
+  if( (test_i_result>=I_MEAS_MIN) && (test_i_result<=I_MEAS_MAX)){
+    return 1;
+    } else{return 0;}
 }
 
 int test_read_ataddr(){
   extMArecvdATADDR="";
   extMArecvdATADDRflag=0;    
   MAclr_read_buffer();  
-  for(int i=1;i<=5;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. сбои    
+  for(int i=1;i<=TEST_RETRY;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. сбои    
     extMAsend("at addr");
     delay(50);
-    for(int i=1;i<=5;i++){          //делает неск.считываний, т.к. получает эхо и др.
+    for(int i=1;i<=READ_STRING_RETRY;i++){          //делает неск.считываний, т.к. получает эхо и др.
         maUpdate();
         String s=extMAread(); 
         if(s.startsWith("[0] ")){
           extMArecvdATADDR=s.substring(4,10);               
-          extMArecvdATADDRflag=1;
-          oled.prints(extMArecvdATADDR);//debug
+          extMArecvdATADDRflag=1;          
           return 1;
         }
     }
@@ -184,30 +195,62 @@ int test_read_ataddr(){
   
 }
 
+int test_at(){
+  if(extMArecvdATADDRflag==0){return 0;} //AT ADDR не был считан. Тест не получится провести.
+  String str_to_send="";  
+  MAclr_read_buffer();
+  for(int i=1;i<=TEST_RETRY;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. 49/50/50, например, а не 50/50/50
+    MAclr_read_buffer;
+    str_to_send="exe ";
+    str_to_send=str_to_send+extMArecvdATADDR;
+    str_to_send=str_to_send+" at addr";
+    intMAsend(str_to_send);    
+    delay(50);    //небольшой таймаут
+    for(int i=1;i<=READ_STRING_RETRY;i++){      //считывает строку несколько раз, пока не увидит ответ [0] [0]. Т.к. приходит эхо и могут прийти информационные сообщения
+      maUpdate();
+      extMAclr_read_buffer();
+      if(intMArecvdFlag==1){
+        String s=intMAread();        
+        if(s.startsWith("[0] [0] ")){
+            return 1;                    
+        }        
+      }
+    }
+    
+  }    
+  return 0; 
+}  
+
+
 int test_adf50(){
   if(extMArecvdATADDRflag==0){return 0;} //AT ADDR не был считан. Тест не получится провести.
   String str_to_send="";
   test_adf50_result="";  
   MAclr_read_buffer();
-  for(int i=1;i<=5;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. 49/50/50, например, а не 50/50/50
+  for(int i=1;i<=TEST_RETRY;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. 49/50/50, например, а не 50/50/50
     MAclr_read_buffer;
     str_to_send="exe ";
     str_to_send=str_to_send+extMArecvdATADDR;
     str_to_send=str_to_send+" adf tst 50";
     intMAsend(str_to_send);    
-    delay(2000);    //таймаут. раньше не успевает провести 50 тестов ADF
-    for(int i=1;i<=5;i++){      //считывает строку несколько раз, пока не увидит ответ 50/50/50. Т.к. приходит эхо и могут прийти информационные сообщения
+    delay(ADF_TST_WAITING);    //таймаут. раньше не успевает провести 50 тестов ADF
+    for(int i=1;i<=READ_STRING_RETRY;i++){      //считывает строку несколько раз, пока не увидит ответ 50/50/50. Т.к. приходит эхо и могут прийти информационные сообщения
       maUpdate();
       extMAclr_read_buffer();
       if(intMArecvdFlag==1){
-        String s=intMAread();
-        //oled.prints(s);//debug  
+        String s=intMAread();        
         if(s.startsWith("[0] [0] ")){
           test_adf50_result=s.substring(8,16);          
           if(test_adf50_result=="50/50/50"){
             return 1;
           }          
         }
+        if(s.startsWith("alarms 0x01, slot -1[0] [0] ")){
+          test_adf50_result=s.substring(28,36);          
+          if(test_adf50_result=="50/50/50"){
+            return 1;
+          }          
+        }        
       }
     }
     
@@ -215,30 +258,69 @@ int test_adf50(){
   return 0; 
 }
 
+int test_alarm(){ 
+  MAclr_read_buffer();  
+  for(int i=1;i<=TEST_RETRY;i++){          //делает неск.тестов, т.к. не сразу принимает   
+    delay(1000);//пауза для принятия алярма
+    extMAsend("lamp alm src");
+    delay(50);
+    for(int i=1;i<=READ_STRING_RETRY;i++){          //делает неск.считываний, т.к. получает эхо и др.
+        maUpdate();
+        String s=extMAread(); 
+        if(s.startsWith("[0] ")){
+          if(s.substring(4,10)=="0xFFFF") {
+            return 1;
+          }
+        }
+    }
+  }
+  return 0;    
+}
+
 int tests(){  
   oled.clear();
   delay(PRINT_PAUSE);
-  if(test_i()){ oled.prints("I тест-ok"); }
-    else { 
+  if(test_i()){ 
+    oled.prints("I ТЕСТ-OK"); 
+  } else { 
       oled.prints( "I="+String ( int ( test_i_result/I_ADC_TO_MA_COEF) ) + " мА" ) ;
       delay(PRINT_PAUSE);
-      oled.prints("I тест-плох"); 
-      //return 0;//debug
+      oled.prints("I ТЕСТ-ПЛОХ"); 
+      return 0;
   }
 
-  if(test_read_ataddr()){ oled.prints("at addr-ok"); }
-    else { 
-      oled.prints( "at addr-плох "); return 0;
-  } 
-  
-  if(test_adf50()){ oled.prints("adf tst-ok"); }
-    else { 
-      oled.prints( "adf="+test_adf50_result) ;
-      delay(PRINT_PAUSE);
-      oled.prints("adf tst-плох"); return 0;
+  if(test_read_ataddr()){
+    String s;
+    s="AT="+extMArecvdATADDR;
+    oled.prints(s);
+    } else { 
+      oled.prints( "AT ADDR-ПЛОХ "); return 0;
   } 
 
-  return 1;
+  if(test_at()){    
+    oled.prints("AT-OK"); 
+    } else { 
+      oled.prints( "AT-ПЛОХ "); return 0;
+  } 
+
+  
+  
+  if(test_adf50()){ oled.prints("ADF TST-OK"); }
+    else { 
+      oled.prints( "ADF="+test_adf50_result) ;
+      delay(PRINT_PAUSE);
+      oled.prints("ADF TST-ПЛОХ"); return 0;
+  } 
+  
+  if(digitalRead(SW_PIN)==0){
+    if(test_alarm()){ 
+      oled.prints("ALARM-OK");
+    } else { 
+      oled.prints("ALARM-ПЛОХ"); return 0;
+    }
+  }
+
+  return 1;  
 }
 
 void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {

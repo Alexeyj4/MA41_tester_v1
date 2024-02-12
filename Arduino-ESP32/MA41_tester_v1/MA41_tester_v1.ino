@@ -325,7 +325,12 @@ int tests(){
 
 void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {
   if(event == Button::PRESSED_EVENT) {    
-    tests();    
+    
+    if(tests()==1){
+      oled.prints("ГОДНЫЙ");    
+    } else{
+      oled.prints("БРАК");  
+    }
   }        
   static int msg_iter=0;
   msg_iter++;

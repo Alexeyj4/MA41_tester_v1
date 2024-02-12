@@ -1,5 +1,5 @@
 //lamp alm src //[0] 0xFFFF - есть алярм по 157,325 //[0] 0x0000 - нет алярма
-//tests: измерение Iпотр, at addr - считывание, adf tst 50, приём alm
+//tests: измерение Iпотр, at addr - считывание, AT-приём/передача, adf tst 50, приём alm
 
 #define CONTROL_CHAR 13 //у Женьки управляющий символ в МАУПах в UART: \r CR
 #define BLE_MODULE_NAME MA41_tester

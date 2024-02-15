@@ -88,7 +88,13 @@ void loop() {
     oled.prints(command_from_ble);//debug
     if(command_from_ble.startsWith(COMMAND_START_TEST)){
       command_from_ble.replace(COMMAND_START_TEST, "");
-      tests(command_from_ble);
+      if(tests(command_from_ble)==1){
+        oled.prints("ГОДНЫЙ");    
+        ble.send("ГОДНЫЙ");    
+      } else{
+        oled.prints("БРАК");  
+        ble.send("БРАК");  
+      }     
     }    
   }
   maUpdate();
@@ -267,33 +273,46 @@ int test_adf50(){
 }
 
 int test_alarm(){ 
-  MAclr_read_buffer();  
-  for(int i=1;i<=TEST_RETRY;i++){          //делает неск.тестов, т.к. не сразу принимает   
+  if(extMArecvdATADDRflag==0){return 0;} //AT ADDR не был считан. Тест не получится провести.
+  String str_to_send="";  
+  MAclr_read_buffer();
+  for(int i=1;i<=TEST_RETRY;i++){          //делает неск.тестов, т.к. алярм не сразу принимается
     delay(1000);//пауза для принятия алярма
-    extMAsend("lamp alm src");
-    delay(50);
-    for(int i=1;i<=READ_STRING_RETRY;i++){          //делает неск.считываний, т.к. получает эхо и др.
-        maUpdate();
-        String s=extMAread(); 
-        if(s.startsWith("[0] ")){
-          if(s.substring(4,10)=="0xFFFF") {
+    MAclr_read_buffer;
+    str_to_send="exe ";
+    str_to_send=str_to_send+extMArecvdATADDR;
+    str_to_send=str_to_send+" lamp alm src";
+    intMAsend(str_to_send);    
+    delay(50);    //таймаут
+    for(int i=1;i<=READ_STRING_RETRY;i++){      //считывает строку несколько раз, пока не увидит ответ [0] [0]. Т.к. приходит эхо и могут прийти информационные сообщения
+      maUpdate();
+      extMAclr_read_buffer();
+      if(intMArecvdFlag==1){
+        String s=intMAread();        
+        if(s.startsWith("[0] [0] ")){
+          if(s.substring(8,14)=="0xFFFF") {
             return 1;
-          }
-        }
+          }                               
+        }        
+      }
     }
-  }
-  return 0;    
-}
+    
+  }    
+  return 0; 
+} 
 
 int tests(String serial){  
   oled.clear();
   delay(PRINT_PAUSE);
   if(test_i()){ 
-    oled.prints("I ТЕСТ-OK"); 
+    oled.prints("I ТЕСТ-OK");
+    ble.send("I ТЕСТ-OK");
   } else { 
       oled.prints( "I="+String ( int ( test_i_result/I_ADC_TO_MA_COEF) ) + " мА" ) ;
+      ble.send( "I="+String ( int ( test_i_result/I_ADC_TO_MA_COEF) ) + " мА" ) ;      
       delay(PRINT_PAUSE);
       oled.prints("I ТЕСТ-ПЛОХ"); 
+      ble.send("I ТЕСТ-ПЛОХ");
       return 0;
   }
 
@@ -302,8 +321,11 @@ int tests(String serial){
       String s;
       s="AT="+extMArecvdATADDR;
       oled.prints(s);
+      ble.send(s);
       } else { 
-        oled.prints( "AT ADDR-ПЛОХ "); return 0;
+        oled.prints( "AT ADDR-ПЛОХ"); 
+        ble.send( "AT ADDR-ПЛОХ"); 
+        return 0;
     } 
   }else{
     extMArecvdATADDR=serial;
@@ -312,24 +334,36 @@ int tests(String serial){
 
   if(test_at()){    
     oled.prints("AT-OK"); 
+    ble.send("AT-OK"); 
     } else { 
-      oled.prints( "AT-ПЛОХ "); return 0;
+      oled.prints( "AT-ПЛОХ"); 
+      ble.send( "AT-ПЛОХ"); 
+      return 0;
   } 
 
   
   
-  if(test_adf50()){ oled.prints("ADF TST-OK"); }
-    else { 
+  if(test_adf50()){ 
+    oled.prints("ADF TST-OK"); 
+    ble.send("ADF TST-OK"); 
+    } else { 
       oled.prints( "ADF="+test_adf50_result) ;
+      ble.send( "ADF="+test_adf50_result) ;
       delay(PRINT_PAUSE);
-      oled.prints("ADF TST-ПЛОХ"); return 0;
-  } 
+      oled.prints("ADF TST-ПЛОХ"); 
+      ble.send("ADF TST-ПЛОХ"); 
+      return 0;
+    }
+ 
   
   if(digitalRead(SW_PIN)==0){
     if(test_alarm()){ 
       oled.prints("ALARM-OK");
+      ble.send("ALARM-OK");
     } else { 
-      oled.prints("ALARM-ПЛОХ"); return 0;
+      oled.prints("ALARM-ПЛОХ"); 
+      ble.send("ALARM-ПЛОХ"); 
+      return 0;
     }
   }
 
@@ -341,11 +375,11 @@ void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {
     
     if(tests("")==1){
       oled.prints("ГОДНЫЙ");    
+      ble.send("ГОДНЫЙ");    
     } else{
       oled.prints("БРАК");  
+      ble.send("БРАК");  
     }
   }        
-  static int msg_iter=0;
-  msg_iter++;
-  ble.send("test"+String(msg_iter)); 
+
 } 

@@ -8,9 +8,11 @@
 #define I_MEAS_MAX 125 //максимально доустимый ток
 #define I_ADC_TO_MA_COEF 3.2//перевод ADC в мА I=ADC/i_adc_to_ma_coef
 #define PRINT_PAUSE 500//пауза при выводе новой строки
-#define TEST_RETRY 7 //кол-во попыток теста
+#define TEST_RETRY 15 //кол-во попыток каждого теста
+#define TEST_AT_RETRY 30 //кол-во попыток каждого теста
 #define READ_STRING_RETRY 10 //попытки найти нужную строку среди ненужных
 #define ADF_TST_WAITING 2000 //время ожидания прохождения adf tst 50
+#define AT_TEST_WAITING 1000 //время ожидания прохождения at-теста
 
 #include <Oled.h>
 #include <Ble.h>
@@ -199,13 +201,13 @@ int test_at(){
   if(extMArecvdATADDRflag==0){return 0;} //AT ADDR не был считан. Тест не получится провести.
   String str_to_send="";  
   MAclr_read_buffer();
-  for(int i=1;i<=TEST_RETRY;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. 49/50/50, например, а не 50/50/50
+  for(int i=1;i<=TEST_AT_RETRY;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. 49/50/50, например, а не 50/50/50
     MAclr_read_buffer;
     str_to_send="exe ";
     str_to_send=str_to_send+extMArecvdATADDR;
     str_to_send=str_to_send+" at addr";
     intMAsend(str_to_send);    
-    delay(50);    //небольшой таймаут
+    delay(AT_TEST_WAITING);    //таймаут
     for(int i=1;i<=READ_STRING_RETRY;i++){      //считывает строку несколько раз, пока не увидит ответ [0] [0]. Т.к. приходит эхо и могут прийти информационные сообщения
       maUpdate();
       extMAclr_read_buffer();

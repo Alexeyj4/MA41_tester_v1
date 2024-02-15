@@ -23,6 +23,7 @@ const int SW_PIN=18;
 const int UART1_RX_PIN=32;
 const int UART1_TX_PIN=33;
 const int I_MEAS_PIN=36;
+const String COMMAND_START_TEST="start"; //формат команды с BLE - начало теста. Формат: "start0x0007"
 
 int test_i_result; //результат теста тока потребления
 String test_adf50_result; //результат теста ADF TST 50
@@ -51,7 +52,7 @@ int test_i(); //проверяет ток потребления 1-ок
 int test_read_ataddr(); //считывает At ADDR 1-ок заполняет extMArecvdATADDR extMArecvdATADDRflag
 int test_at(); //проверяет ответ по AT86 1-ок
 int test_alarm();//проверят, принял ли МАУП alarm по 157.325МГц
-int tests(); //проводит последовательно все тесты. Выводит сообщения на экран
+int tests(String serial); //проводит последовательно все тесты. Выводит сообщения на экран
 //void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id);
 
 // Identify which buttons you are using...
@@ -80,14 +81,19 @@ void setup() {
 
 void loop() {  
   if(ble.recvd()!=""){
-    oled.prints(ble.recvd());    
+    delay(100);
+    String command_from_ble="";
+    command_from_ble=ble.recvd();
     ble.clr();
+    oled.prints(command_from_ble);//debug
+    if(command_from_ble.startsWith(COMMAND_START_TEST)){
+      command_from_ble.replace(COMMAND_START_TEST, "");
+      tests(command_from_ble);
+    }    
   }
   maUpdate();
   intMAread();
   extMAread();
-  //extMAclr_read_buffer();
-  //intMAclr_read_buffer();
   oled.update();  
   btn.handle();   
 }
@@ -279,7 +285,7 @@ int test_alarm(){
   return 0;    
 }
 
-int tests(){  
+int tests(String serial){  
   oled.clear();
   delay(PRINT_PAUSE);
   if(test_i()){ 
@@ -291,13 +297,18 @@ int tests(){
       return 0;
   }
 
-  if(test_read_ataddr()){
-    String s;
-    s="AT="+extMArecvdATADDR;
-    oled.prints(s);
-    } else { 
-      oled.prints( "AT ADDR-ПЛОХ "); return 0;
-  } 
+  if(serial==""){//если serial получен с BLE - то не надо делать считывание
+    if(test_read_ataddr()){
+      String s;
+      s="AT="+extMArecvdATADDR;
+      oled.prints(s);
+      } else { 
+        oled.prints( "AT ADDR-ПЛОХ "); return 0;
+    } 
+  }else{
+    extMArecvdATADDR=serial;
+    extMArecvdATADDRflag=1;     
+  }
 
   if(test_at()){    
     oled.prints("AT-OK"); 
@@ -328,7 +339,7 @@ int tests(){
 void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {
   if(event == Button::PRESSED_EVENT) {    
     
-    if(tests()==1){
+    if(tests("")==1){
       oled.prints("ГОДНЫЙ");    
     } else{
       oled.prints("БРАК");  

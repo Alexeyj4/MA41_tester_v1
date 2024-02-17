@@ -89,11 +89,9 @@ void loop() {
     if(command_from_ble.startsWith(COMMAND_START_TEST)){
       command_from_ble.replace(COMMAND_START_TEST, "");
       if(tests(command_from_ble)==1){
-        oled.prints("ГОДНЫЙ");    
-        ble.send("ГОДНЫЙ");    
+        ok_message();   
       } else{
-        oled.prints("БРАК");  
-        ble.send("БРАК");  
+        not_ok_message();
       }     
     }    
   }
@@ -382,15 +380,28 @@ int tests(String serial){
   return 1;  
 }
 
+void ok_message(){
+      
+      
+      
+      oled.prints("ГОДНЫЙ");    
+      ble.send("ГОДНЫЙ");  
+}
+void not_ok_message(){
+
+      
+      oled.prints(String(extMArecvdATADDR.substring(2).toInt()));//debug
+      
+      oled.prints("БРАК");  
+      ble.send("БРАК");   
+}
+
 void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {
   if(event == Button::PRESSED_EVENT) {    
-    
     if(tests("")==1){
-      oled.prints("ГОДНЫЙ");    
-      ble.send("ГОДНЫЙ");    
+      ok_message();
     } else{
-      oled.prints("БРАК");  
-      ble.send("БРАК");  
+      not_ok_message();
     }
   }        
 

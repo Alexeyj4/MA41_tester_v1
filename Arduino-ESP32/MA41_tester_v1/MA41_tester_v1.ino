@@ -303,16 +303,20 @@ int test_alarm(){
 
 int tests(String serial){  
   oled.clear();
+  oled.prints("Тест "+serial+"...");
+  ble.send("Start testing "+serial+"..."); 
   delay(PRINT_PAUSE);
   if(test_i()){ 
     oled.prints("I ТЕСТ-OK");
-    ble.send("I ТЕСТ-OK");
+    ble.send("Power test - ok");
+    delay(PRINT_PAUSE);
   } else { 
       oled.prints( "I="+String ( int ( test_i_result/I_ADC_TO_MA_COEF) ) + " мА" ) ;
-      ble.send( "I="+String ( int ( test_i_result/I_ADC_TO_MA_COEF) ) + " мА" ) ;      
-      delay(PRINT_PAUSE);
+      ble.send( "I="+String ( int ( test_i_result/I_ADC_TO_MA_COEF) ) + " мА" ) ;
+      delay(PRINT_PAUSE);            
       oled.prints("I ТЕСТ-ПЛОХ"); 
-      ble.send("I ТЕСТ-ПЛОХ");
+      ble.send("Power test - bad");
+      delay(PRINT_PAUSE);
       return 0;
   }
 
@@ -322,9 +326,11 @@ int tests(String serial){
       s="AT="+extMArecvdATADDR;
       oled.prints(s);
       ble.send(s);
+      delay(PRINT_PAUSE);
       } else { 
         oled.prints( "AT ADDR-ПЛОХ"); 
-        ble.send( "AT ADDR-ПЛОХ"); 
+        ble.send( "AT ADDR reading - bad"); 
+        delay(PRINT_PAUSE);
         return 0;
     } 
   }else{
@@ -334,10 +340,12 @@ int tests(String serial){
 
   if(test_at()){    
     oled.prints("AT-OK"); 
-    ble.send("AT-OK"); 
+    ble.send("AT test - ok"); 
+    delay(PRINT_PAUSE);
     } else { 
       oled.prints( "AT-ПЛОХ"); 
-      ble.send( "AT-ПЛОХ"); 
+      ble.send( "AT test - bad"); 
+      delay(PRINT_PAUSE);
       return 0;
   } 
 
@@ -345,13 +353,15 @@ int tests(String serial){
   
   if(test_adf50()){ 
     oled.prints("ADF TST-OK"); 
-    ble.send("ADF TST-OK"); 
+    ble.send("ADF test 50/50 - ok"); 
+    delay(PRINT_PAUSE);
     } else { 
       oled.prints( "ADF="+test_adf50_result) ;
       ble.send( "ADF="+test_adf50_result) ;
-      delay(PRINT_PAUSE);
+      delay(PRINT_PAUSE);      
       oled.prints("ADF TST-ПЛОХ"); 
-      ble.send("ADF TST-ПЛОХ"); 
+      ble.send("ADF test 50/50 - bad"); 
+      delay(PRINT_PAUSE);
       return 0;
     }
  
@@ -359,10 +369,12 @@ int tests(String serial){
   if(digitalRead(SW_PIN)==0){
     if(test_alarm()){ 
       oled.prints("ALARM-OK");
-      ble.send("ALARM-OK");
+      ble.send("ALARM receive - ok");
+      delay(PRINT_PAUSE);
     } else { 
       oled.prints("ALARM-ПЛОХ"); 
-      ble.send("ALARM-ПЛОХ"); 
+      ble.send("ALARM receive - bad"); 
+      delay(PRINT_PAUSE);      
       return 0;
     }
   }

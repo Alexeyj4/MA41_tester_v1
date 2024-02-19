@@ -4,15 +4,18 @@
 #define CONTROL_CHAR 13 //у Женьки управляющий символ в МАУПах в UART: \r CR
 #define BLE_MODULE_NAME MA41_tester
 #define OLED_DISPLAY_TYPE SSD1306
-#define I_MEAS_MIN 95 //минимально доустимый ток
-#define I_MEAS_MAX 125 //максимально доустимый ток
+#define I_MEAS_MIN 85 //минимально доустимый ток (в единицах ADC)
+#define I_MEAS_MAX 125 //максимально доустимый ток (в единицах ADC)
 #define I_ADC_TO_MA_COEF 3.2//перевод ADC в мА I=ADC/i_adc_to_ma_coef
 #define PRINT_PAUSE 500//пауза при выводе новой строки
-#define TEST_RETRY 15 //кол-во попыток каждого теста
-#define TEST_AT_RETRY 30 //кол-во попыток каждого теста
+#define TEST_RETRY 10 //кол-во попыток каждого теста
+#define TEST_AT_RETRY 10 //кол-во попыток каждого теста
 #define READ_STRING_RETRY 10 //попытки найти нужную строку среди ненужных
+#define READ_STRING_RETRY_FW_VER_TEST 20 //sys info выдаёт больше строк (около 10). Поэтому столько попыток найти строку с версией прошивки
 #define ADF_TST_WAITING 2000 //время ожидания прохождения adf tst 50
-#define AT_TEST_WAITING 1000 //время ожидания прохождения at-теста
+#define AT_TEST_WAITING 500 //время ожидания прохождения at-теста
+#define FW_VER_TEST_WAITING 500 //время ожидания прохождения fw ver-теста
+#define I_TEST_COUNT 50 //кол-во измерений тока для подсчёта среднего
 
 #include <Oled.h>
 #include <Ble.h>
@@ -23,7 +26,9 @@ const int SW_PIN=18;
 const int UART1_RX_PIN=32;
 const int UART1_TX_PIN=33;
 const int I_MEAS_PIN=36;
-const String COMMAND_START_TEST="start"; //формат команды с BLE - начало теста. Формат: "start0x0007"
+const String COMMAND_START_TEST="start"; //формат команды с BLE - начало теста. Формат: "start0x0007". Нули - обязательно, если меньше 4 цифр
+const String CORRECT_FW_VER="Mar 26 2022"; //подстрока для проверки правильной версии прошивки
+const String INCORRECT_FW_VER="Mar 25 2020"; //подстрока для проверки неправильной версии прошивки
 
 int test_i_result; //результат теста тока потребления
 String test_adf50_result; //результат теста ADF TST 50
@@ -84,8 +89,7 @@ void loop() {
     delay(100);
     String command_from_ble="";
     command_from_ble=ble.recvd();
-    ble.clr();
-    oled.prints(command_from_ble);//debug
+    ble.clr();    
     if(command_from_ble.startsWith(COMMAND_START_TEST)){
       command_from_ble.replace(COMMAND_START_TEST, "");
       if(tests(command_from_ble)==1){
@@ -175,12 +179,12 @@ void extMAsend(String s){
 }
 int test_i(){
   test_i_result=0;
-  int i_sum=0;
-  for(int i=1;i<=10;i++){
+  unsigned long i_sum=0;
+  for(int i=1;i<=I_TEST_COUNT;i++){
     delay(10);
     i_sum=i_sum+analogRead(I_MEAS_PIN);        
   }  
-  test_i_result=int(i_sum/10);  
+  test_i_result=int(i_sum/I_TEST_COUNT);  
   if( (test_i_result>=I_MEAS_MIN) && (test_i_result<=I_MEAS_MAX)){
     return 1;
     } else{return 0;}
@@ -211,7 +215,7 @@ int test_at(){
   if(extMArecvdATADDRflag==0){return 0;} //AT ADDR не был считан. Тест не получится провести.
   String str_to_send="";  
   MAclr_read_buffer();
-  for(int i=1;i<=TEST_AT_RETRY;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. 49/50/50, например, а не 50/50/50
+  for(int i=1;i<=TEST_AT_RETRY;i++){          //делает неск.тестов, т.к. иногда из-за помех может не принять
     MAclr_read_buffer;
     str_to_send="exe ";
     str_to_send=str_to_send+extMArecvdATADDR;
@@ -299,11 +303,42 @@ int test_alarm(){
   return 0; 
 } 
 
+int test_fw_ver(){
+  if(extMArecvdATADDRflag==0){return 0;} //AT ADDR не был считан. Тест не получится провести.
+  String str_to_send="";  
+  MAclr_read_buffer();
+  for(int i=1;i<=TEST_AT_RETRY;i++){          //делает неск.тестов, т.к. иногда из-за помех может не принять (как и в AT-тесте)
+    MAclr_read_buffer;
+    str_to_send="exe ";
+    str_to_send=str_to_send+extMArecvdATADDR;
+    str_to_send=str_to_send+" sys info";
+    intMAsend(str_to_send);    
+    delay(FW_VER_TEST_WAITING);    //таймаут
+    for(int i=1;i<=READ_STRING_RETRY_FW_VER_TEST;i++){      //считывает строку несколько раз , пока не увидит ответ CORRECT_FW_VER или INCORRECT_FW_VER. Т.к. приходит эхо и могут прийти информационные сообщения
+      maUpdate();
+      extMAclr_read_buffer();
+      if(intMArecvdFlag==1){
+        String s=intMAread();        
+        if(s.lastIndexOf(CORRECT_FW_VER)!=-1){
+            return 1;                    
+        }
+        if(s.lastIndexOf(INCORRECT_FW_VER)!=-1){
+            return 0;                    
+        }       
+      }
+    }
+    
+  }    
+  return -1; //версия не определилась
+}  
+
 int tests(String serial){  
   oled.clear();
   oled.prints("Тест "+serial+"...");
+  ble.send(" "); 
   ble.send("Start testing "+serial+"..."); 
   delay(PRINT_PAUSE);
+  
   if(test_i()){ 
     oled.prints("I ТЕСТ-OK");
     ble.send("Power test - ok");
@@ -318,7 +353,7 @@ int tests(String serial){
       return 0;
   }
 
-  if(serial==""){//если serial получен с BLE - то не надо делать считывание
+  if(serial==""){//если serial не получен с BLE - то надо делать считывание
     if(test_read_ataddr()){
       String s;
       s="AT="+extMArecvdATADDR;
@@ -377,21 +412,41 @@ int tests(String serial){
     }
   }
 
+  if(serial!=""){//если serial получен с BLE - то надо делать проверку версии прошивки
+    if(test_fw_ver()==1){ 
+      oled.prints("FW ver-OK");
+      ble.send("FW version - ok");
+      delay(PRINT_PAUSE);
+    } 
+    if(test_fw_ver()==0){  
+      oled.prints("FW ver-ПЛОХ"); 
+      ble.send("FW version - bad"); 
+      delay(PRINT_PAUSE);      
+      return 0;
+    }    
+    if(test_fw_ver()==-1){  //не опредилилась
+      oled.prints("FW ver-НЕИЗВ"); 
+      ble.send("FW version - unknown"); 
+      delay(PRINT_PAUSE);      
+      return 0;
+    }
+  }
+
   return 1;  
 }
 
 void ok_message(){
-      
-      
-      
+      int hsb;
+      int lsb;
+      sscanf(extMArecvdATADDR.substring(2,4).c_str(),"%2x", &hsb);      
+      sscanf(extMArecvdATADDR.substring(4,6).c_str(),"%2x", &lsb);           
+      oled.prints("s/n: "+String(hsb*1000+lsb));      
+      ble.send("s/n: "+String(hsb*1000+lsb));      
+      delay(100);
       oled.prints("ГОДНЫЙ");    
       ble.send("ГОДНЫЙ");  
 }
 void not_ok_message(){
-
-      
-      oled.prints(String(extMArecvdATADDR.substring(2).toInt()));//debug
-      
       oled.prints("БРАК");  
       ble.send("БРАК");   
 }

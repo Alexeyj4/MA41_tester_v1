@@ -1,5 +1,5 @@
 //lamp alm src //[0] 0xFFFF - есть алярм по 157,325 //[0] 0x0000 - нет алярма
-//tests: измерение Iпотр, at addr - считывание, AT-приём/передача, adf tst 50, приём alm
+//tests: измерение Iпотр, at addr - считывание, AT-приём/передача, adf tst 20, приём alm
 //intMA - встроенный МА, для связи с extMA (тестируемым)
 
 #define CONTROL_CHAR 13 //у Женьки управляющий символ в МАУПах в UART: \r CR
@@ -13,7 +13,7 @@
 #define TEST_AT_RETRY 10 //кол-во попыток каждого теста
 #define READ_STRING_RETRY 10 //попытки найти нужную строку среди ненужных
 #define READ_STRING_RETRY_FW_VER_TEST 20 //sys info выдаёт больше строк (около 10). Поэтому столько попыток найти строку с версией прошивки
-#define ADF_TST_WAITING 2000 //время ожидания прохождения adf tst 50
+#define ADF_TST_WAITING 2000 //время ожидания прохождения adf tst 20
 #define AT_TEST_WAITING 500 //время ожидания прохождения at-теста
 #define FW_VER_TEST_WAITING 500 //время ожидания прохождения fw ver-теста
 #define I_TEST_COUNT 50 //кол-во измерений тока для подсчёта среднего
@@ -32,7 +32,7 @@ const String CORRECT_FW_VER="Mar 26 2022"; //подстрока для пров�
 const String INCORRECT_FW_VER="Mar 25 2020"; //подстрока для проверки неправильной версии прошивки
 
 int test_i_result; //результат теста тока потребления
-String test_adf50_result; //результат теста ADF TST 50
+String test_adf20_result; //результат теста ADF TST 20
 
 String intMArecvdStr="";//буфер. Строка, полученная из МА.
 String extMArecvdStr="";//-//-
@@ -59,8 +59,12 @@ void extMAsend(String s); //-//-
 int test_i(); //проверяет ток потребления 1-ок
 int test_read_ataddr(); //считывает At ADDR 1-ок заполняет extMArecvdATADDR extMArecvdATADDRflag
 int test_at(); //проверяет ответ по AT86 1-ок
+int test_adf20(); //проверяет adf tst 20
 int test_alarm();//проверяет, принял ли МАУП alarm по 157.325МГц
 int tests(String serial); //проводит последовательно все тесты. Выводит сообщения на экран
+void ok_message();
+void not_ok_message();
+void welcome_screen();
 
 void setup() { 
   Serial.begin(115200); 
@@ -75,11 +79,7 @@ void setup() {
   pinMode(I_MEAS_PIN,INPUT);
   btn->attachPressDownEventCb(&onButtonPressDownCb_btn, NULL);
   switch_alarm->attachPressDownEventCb(&onButtonPressDownCb_switch_alarm, NULL);
-  oled.print(0,"Подключите");
-  oled.print(1,"МАУП");
-  oled.print(2,"Нажмите");
-  oled.print(3,"кнопку");
-  oled.update();
+  welcome_screen();
 }
 
 void loop() {  
@@ -90,11 +90,16 @@ void loop() {
     ble.clr();    
     if(command_from_ble.startsWith(COMMAND_START_TEST)){
       command_from_ble.replace(COMMAND_START_TEST, "");
-      if(tests(command_from_ble)==1){
+
+      int test_result=tests(command_from_ble);
+      if(test_result==1){
         ok_message();   
-      } else{
-        not_ok_message();
-      }     
+      }
+      
+      if(test_result==0){
+        not_ok_message();   
+      }    
+      
     }    
   }
  
@@ -108,7 +113,8 @@ void loop() {
     delay(500);
     oled.prints("alarm 157МГц");
     delay(2000);
-    switch_alarm_pressed_flag=0;
+    switch_alarm_pressed_flag=0;    
+    welcome_screen();
   }
 
   if(btn_pressed_flag){
@@ -124,6 +130,14 @@ void loop() {
   intMAread();
   extMAread();
   oled.update();     
+}
+
+void welcome_screen(){
+  oled.print(0,"Подключите");
+  oled.print(1,"МАУП");
+  oled.print(2,"Нажмите");
+  oled.print(3,"кнопку");
+  oled.update();  
 }
 
 void maUpdate(){
@@ -258,16 +272,16 @@ int test_at(){
 }  
 
 
-int test_adf50(){
+int test_adf20(){
   if(extMArecvdATADDRflag==0){return 0;} //AT ADDR не был считан. Тест не получится провести.
   String str_to_send="";
-  test_adf50_result="";  
+  test_adf20_result="";  
   MAclr_read_buffer();
   for(int i=1;i<=TEST_RETRY;i++){          //делает неск.тестов, т.к. иногда из-за помех м.б. 49/50/50, например, а не 50/50/50
     MAclr_read_buffer;
     str_to_send="exe ";
     str_to_send=str_to_send+extMArecvdATADDR;
-    str_to_send=str_to_send+" adf tst 50";
+    str_to_send=str_to_send+" adf tst 20";
     intMAsend(str_to_send);    
     delay(ADF_TST_WAITING);    //таймаут. раньше не успевает провести 50 тестов ADF
     for(int i=1;i<=READ_STRING_RETRY;i++){      //считывает строку несколько раз, пока не увидит ответ 50/50/50. Т.к. приходит эхо и могут прийти информационные сообщения
@@ -276,14 +290,14 @@ int test_adf50(){
       if(intMArecvdFlag==1){
         String s=intMAread();        
         if(s.startsWith("[0] [0] ")){
-          test_adf50_result=s.substring(8,16);          
-          if(test_adf50_result=="50/50/50"){
+          test_adf20_result=s.substring(8,16);          
+          if(test_adf20_result=="20/20/20"){
             return 1;
           }          
         }
         if(s.startsWith("alarms 0x01, slot -1[0] [0] ")){
-          test_adf50_result=s.substring(28,36);          
-          if(test_adf50_result=="50/50/50"){
+          test_adf20_result=s.substring(28,36);          
+          if(test_adf20_result=="20/20/20"){
             return 1;
           }          
         }        
@@ -352,7 +366,7 @@ int test_fw_ver(){
   return -1; //версия не определилась
 }  
 
-int tests(String serial){  
+int tests(String serial){  //1-все тесты - ок. 0-брак. -1-не известно (например, неизвестная версия прошивки, но всё остальное - ок)
   oled.clear();
   oled.prints("Тест "+serial+"...");
   ble.send(" "); 
@@ -404,16 +418,16 @@ int tests(String serial){
 
   
   
-  if(test_adf50()){ 
+  if(test_adf20()){ 
     oled.prints("ADF TST-OK"); 
-    ble.send("ADF test 50/50 - ok"); 
+    ble.send("ADF test 20/20 - ok"); 
     delay(PRINT_PAUSE);
     } else { 
-      oled.prints( "ADF="+test_adf50_result) ;
-      ble.send( "ADF="+test_adf50_result) ;
+      oled.prints( "ADF="+test_adf20_result) ;
+      ble.send( "ADF="+test_adf20_result) ;
       delay(PRINT_PAUSE);      
       oled.prints("ADF TST-ПЛОХ"); 
-      ble.send("ADF test 50/50 - bad"); 
+      ble.send("ADF test 20/20 - bad"); 
       delay(PRINT_PAUSE);
       return 0;
     }
@@ -448,7 +462,7 @@ int tests(String serial){
       oled.prints("FW ver-НЕИЗВ"); 
       ble.send("FW version - unknown"); 
       delay(PRINT_PAUSE);      
-      return 0;
+      return -1;
     }
   }
 

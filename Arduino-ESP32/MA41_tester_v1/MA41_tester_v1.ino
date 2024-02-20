@@ -1,5 +1,6 @@
 //lamp alm src //[0] 0xFFFF - есть алярм по 157,325 //[0] 0x0000 - нет алярма
 //tests: измерение Iпотр, at addr - считывание, AT-приём/передача, adf tst 50, приём alm
+//intMA - встроенный МА, для связи с extMA (тестируемым)
 
 #define CONTROL_CHAR 13 //у Женьки управляющий символ в МАУПах в UART: \r CR
 #define BLE_MODULE_NAME MA41_tester
@@ -19,10 +20,10 @@
 
 #include <Oled.h>
 #include <Ble.h>
-#include <AbleButtons.h>
+#include <Button.h>
 
 const gpio_num_t BTN_PIN=GPIO_NUM_19; //кнопка энкодера. gpio_num_t а не int иначе не работает выход из спящего режима, если просто int 19 указать
-const int SW_PIN=18;
+const gpio_num_t SWITCH_ALARM_PIN=GPIO_NUM_18; //переключатель режима проверки приёма Алярма или без. gpio_num_t а не int иначе не работает выход из спящего режима, если просто int 18 указать
 const int UART1_RX_PIN=32;
 const int UART1_TX_PIN=33;
 const int I_MEAS_PIN=36;
@@ -39,6 +40,8 @@ bool intMArecvdFlag=0;//если получена строка с внутрен
 bool extMArecvdFlag=0;//если получена строка с внешнего МА (если получен в конце упр.символ)
 String extMArecvdATADDR="";//строка, полученная при чтении AT ADDR
 bool extMArecvdATADDRflag=0;//если с МА считан AT ADDR успешно
+bool switch_alarm_pressed_flag=0; //был включён режим "с Алярм"
+bool btn_pressed_flag=0; //была нажата кнопка Старт
 
 Oled oled;
 Ble ble;
@@ -56,16 +59,8 @@ void extMAsend(String s); //-//-
 int test_i(); //проверяет ток потребления 1-ок
 int test_read_ataddr(); //считывает At ADDR 1-ок заполняет extMArecvdATADDR extMArecvdATADDRflag
 int test_at(); //проверяет ответ по AT86 1-ок
-int test_alarm();//проверят, принял ли МАУП alarm по 157.325МГц
+int test_alarm();//проверяет, принял ли МАУП alarm по 157.325МГц
 int tests(String serial); //проводит последовательно все тесты. Выводит сообщения на экран
-//void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id);
-
-// Identify which buttons you are using...
-using Button = AblePullupCallbackButton;
-using ButtonList = AblePullupCallbackButtonList;
-// Declaration of callback function defined later.
-void buttonableCallback(Button::CALLBACK_EVENT, uint8_t);
-Button btn(int(BTN_PIN), buttonableCallback); // The button to check.
 
 void setup() { 
   Serial.begin(115200); 
@@ -73,10 +68,13 @@ void setup() {
   Serial2.begin(115200, SERIAL_8N1); //Внутренний МА41
   ble.begin();
   oled.begin();
+  Button* btn = new Button(BTN_PIN, false);
+  Button* switch_alarm = new Button(SWITCH_ALARM_PIN, false);
   pinMode(BTN_PIN,INPUT_PULLUP);
-  pinMode(SW_PIN,INPUT_PULLUP);
+  pinMode(SWITCH_ALARM_PIN,INPUT_PULLUP);
   pinMode(I_MEAS_PIN,INPUT);
-  btn.begin();
+  btn->attachPressDownEventCb(&onButtonPressDownCb_btn, NULL);
+  switch_alarm->attachPressDownEventCb(&onButtonPressDownCb_switch_alarm, NULL);
   oled.print(0,"Подключите");
   oled.print(1,"МАУП");
   oled.print(2,"Нажмите");
@@ -99,11 +97,33 @@ void loop() {
       }     
     }    
   }
+ 
+  if(switch_alarm_pressed_flag){
+    oled.clear();
+    oled.prints("Включите");
+    delay(500);
+    oled.prints("внешний");
+    delay(500);
+    oled.prints("источник");
+    delay(500);
+    oled.prints("alarm 157МГц");
+    delay(2000);
+    switch_alarm_pressed_flag=0;
+  }
+
+  if(btn_pressed_flag){
+    if(tests("")){
+      ok_message();
+    }else{
+      not_ok_message();
+    }    
+    btn_pressed_flag=0;
+  }
+  
   maUpdate();
   intMAread();
   extMAread();
-  oled.update();  
-  btn.handle();   
+  oled.update();     
 }
 
 void maUpdate(){
@@ -399,7 +419,7 @@ int tests(String serial){
     }
  
   
-  if(digitalRead(SW_PIN)==0){
+  if(digitalRead(SWITCH_ALARM_PIN)==0){
     if(test_alarm()){ 
       oled.prints("ALARM-OK");
       ble.send("ALARM receive - ok");
@@ -451,13 +471,9 @@ void not_ok_message(){
       ble.send("БРАК");   
 }
 
-void buttonableCallback(Button::CALLBACK_EVENT event, uint8_t id) {
-  if(event == Button::PRESSED_EVENT) {    
-    if(tests("")==1){
-      ok_message();
-    } else{
-      not_ok_message();
-    }
-  }        
-
-} 
+static void onButtonPressDownCb_btn(void *button_handle, void *usr_data) {
+  btn_pressed_flag=1;
+}        
+static void onButtonPressDownCb_switch_alarm(void *button_handle, void *usr_data) {
+  switch_alarm_pressed_flag=1;
+}   

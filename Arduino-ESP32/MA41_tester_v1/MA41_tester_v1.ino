@@ -22,8 +22,8 @@
 #include <Ble.h>
 #include <Button.h>
 
-const gpio_num_t BTN_PIN=GPIO_NUM_19; //кнопка энкодера. gpio_num_t а не int иначе не работает выход из спящего режима, если просто int 19 указать
-const gpio_num_t SWITCH_ALARM_PIN=GPIO_NUM_18; //переключатель режима проверки приёма Алярма или без. gpio_num_t а не int иначе не работает выход из спящего режима, если просто int 18 указать
+const gpio_num_t BTN_PIN=GPIO_NUM_19; //кнопка Старт
+const gpio_num_t SWITCH_ALARM_PIN=GPIO_NUM_18; //переключатель режима проверки приёма Алярма или без
 const int UART1_RX_PIN=32;
 const int UART1_TX_PIN=33;
 const int I_MEAS_PIN=36;
@@ -382,7 +382,7 @@ int tests(String serial){
       delay(PRINT_PAUSE);
       } else { 
         oled.prints( "AT ADDR-ПЛОХ"); 
-        ble.send( "AT ADDR reading - bad"); 
+        ble.send( "AT ADDR read - bad"); 
         delay(PRINT_PAUSE);
         return 0;
     } 

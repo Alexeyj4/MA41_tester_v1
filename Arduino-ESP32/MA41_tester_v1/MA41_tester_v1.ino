@@ -447,18 +447,19 @@ int tests(String serial){  //1-все тесты - ок. 0-брак. -1-не и�
   }
 
   if(serial!=""){//если serial получен с BLE - то надо делать проверку версии прошивки
-    if(test_fw_ver()==1){ 
+    int fw_test_rezult=test_fw_ver();
+    if(fw_test_rezult==1){ 
       oled.prints("FW ver-OK");
       ble.send("FW version - ok");
       delay(PRINT_PAUSE);
     } 
-    if(test_fw_ver()==0){  
+    if(fw_test_rezult==0){  
       oled.prints("FW ver-ПЛОХ"); 
       ble.send("FW version - bad"); 
       delay(PRINT_PAUSE);      
       return 0;
     }    
-    if(test_fw_ver()==-1){  //не опредилилась
+    if(fw_test_rezult==-1){  //не опредилилась
       oled.prints("FW ver-НЕИЗВ"); 
       ble.send("FW version - unknown"); 
       delay(PRINT_PAUSE);      
